@@ -4,13 +4,15 @@ import streamlit as st
 import boto3
 import uuid
 
-# === Agent Configuration ===
-REGION = "us-east-1"
-AGENT_ID = "W5SCV2Y8RU"
-AGENT_ALIAS_ID = "SIU2PWEIHL"  # short alias ID, not name
+client = boto3.client(
+    "bedrock-agent-runtime",
+    region_name=st.secrets["AWS_DEFAULT_REGION"],
+    aws_access_key_id=st.secrets["AWS_ACCESS_KEY_ID"],
+    aws_secret_access_key=st.secrets["AWS_SECRET_ACCESS_KEY"]
+)
 
-# === Bedrock Client
-client = boto3.client("bedrock-agent-runtime", region_name=REGION)
+AGENT_ID = st.secrets["AGENT_ID"]
+AGENT_ALIAS_ID = st.secrets["AGENT_ALIAS_ID"]
 
 # === Streamlit Setup
 st.set_page_config(page_title="OcyonBio Smart Search", layout="centered")
