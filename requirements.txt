@@ -1,3 +1,5 @@
-streamlit
+flask
+authlib
+requests
 boto3
-streamlit-authenticator
+gunicorn
