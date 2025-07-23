@@ -3,11 +3,18 @@ from auth import configure_oauth
 from routes import register_routes
 import os
 from dotenv import load_dotenv
+import sys
 
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SECRET_KEY")
+
+# Set secret key for session security
+secret_key = os.getenv("FLASK_SECRET_KEY")
+if not secret_key:
+    print("WARNING: FLASK_SECRET_KEY is not set! Using an insecure default key. Set FLASK_SECRET_KEY in your environment for production.", file=sys.stderr)
+    secret_key = "dev_secret_key"  # fallback for local/dev only
+app.secret_key = secret_key
 
 # Secure session cookies (cookie-based sessions only)
 app.config.update(
@@ -24,5 +31,8 @@ if os.getenv("DEPLOYED", "false").lower() == "true":
 configure_oauth(app)
 register_routes(app)
 
+# Use PORT env variable for App Runner compatibility
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8501)
+    # App Runner sets the PORT env variable; default to 8501 for local dev
+    port = int(os.environ.get("PORT", 8501))
+    app.run(host="0.0.0.0", port=port)
