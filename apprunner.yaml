@@ -1,8 +1,0 @@
-version: 1.0
-services:
-  - name: smart-search-agent
-    source:
-      image_repository:
-        image_identifier: <your-ecr-image-uri-or-public.ecr.aws/your-image:tag>
-        image_configuration:
-          port: 8501
