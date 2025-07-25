@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Smart Search - OcyonBio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/static/chat.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-logo">
+      <img src="https://ocyonbio.com/wp-content/uploads/2021/11/ocyonbio-logo.png" alt="OcyonBio Logo" style="height:40px;width:auto;margin-right:14px;vertical-align:middle;" />
+    </div>
+    <div class="navbar-user">
+      {% if user %}
+      <span class="user-label">Logged in as {{ user.email }}</span>
+    {% endif %}
+    </div>
+    <div class="navbar-links">
+      <a href="#" class="nav-link" id="navbarFeedbackBtn">Feedback</a>
+      <a href="/logout" class="nav-link">Logout</a>
+    </div>
+  </nav>
+  <div class="chat-main">
+    <div class="chat-history" id="chat-history">
+      {% for msg in messages %}
+        <div class="chat-row {{ msg.role }}">
+          <div class="chat-author">{{ 'You' if msg.role == 'user' else '<img src="https://assets-v2.lottiefiles.com/a/b942abb8-d62e-11ee-a179-af4105107ebe/tPZDd31PcO.gif" alt="Assistant" style="height:40px;width:auto;vertical-align:middle;border-radius:8px;" />' }}</div>
+          <div class="chat-content">{{ msg.content|safe }}</div>
+        </div>
+      {% endfor %}
+      <div id="typing-indicator" class="chat-row assistant" style="display:none;">
+        <div class="chat-author"><img src="https://assets-v2.lottiefiles.com/a/b942abb8-d62e-11ee-a179-af4105107ebe/tPZDd31PcO.gif" alt="Assistant" style="height:40px;width:auto;vertical-align:middle;border-radius:8px;" /></div>
+        <div class="chat-content typing-dots"><span>.</span><span>.</span><span>.</span></div>
+      </div>
+    </div>
+    {% if user %}
+      <form method="POST" action="/ask" class="chat-input-bar" id="chat-form" autocomplete="off">
+        <textarea name="question" placeholder="Ask your question..." required autocomplete="off" rows="1"></textarea>
+        <button type="submit">Send</button>
+      </form>
+    {% else %}
+      <div class="login-prompt">
+        <a href="/login">Login</a> to use the smart search.
+      </div>
+    {% endif %}
+  </div>
+  <div class="feedback-sidebar" id="feedbackSidebar">
+    <div class="feedback-content" id="feedbackContent">
+      <button class="feedback-close" id="feedbackClose" title="Close">&times;</button>
+      <h3>Leave Feedback</h3>
+      <p>We value your input! Use this form to submit feedback, report issues, or suggest improvements for Smart Search Agent.</p>
+      <form id="feedbackForm">
+        <label for="fb-summary">Summary</label>
+        <input type="text" id="fb-summary" name="summary" placeholder="Short summary" required>
+        <label for="fb-description">Description</label>
+        <textarea id="fb-description" name="description" rows="3" placeholder="Describe your feedback or issue..." required></textarea>
+        <label for="fb-labels">Labels (comma separated)</label>
+        <input type="text" id="fb-labels" name="labels" placeholder="e.g. Bug, User Interface, Suggestion">
+        <label for="fb-user">Your Email (optional)</label>
+        <input type="email" id="fb-user" name="user" placeholder="user@example.com">
+        <!-- Placeholder for file upload in the future -->
+        <button type="submit">Submit Feedback</button>
+      </form>
+      <div id="feedbackSuccess" style="display:none;color:#10b981;margin-top:10px;">Thank you for your feedback!</div>
+    </div>
+  </div>
+  <!-- Move feedback-toggle outside sidebar for visibility and stacking -->
+  <div class="feedback-toggle" id="feedbackToggle" title="Leave Feedback">
+    <span class="feedback-icon">💬</span>
+  </div>
+  <script>
+    // Auto-expand textarea and handle Enter/Shift+Enter
+    const textarea = document.querySelector('.chat-input-bar textarea');
+    const form = document.getElementById('chat-form');
+    const chatHistory = document.getElementById('chat-history');
+    const typingIndicator = document.getElementById('typing-indicator');
+    if (textarea) {
+      textarea.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+      });
+      textarea.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          form.dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}));
+        }
+      });
+    }
+    // Scroll to bottom on new message
+    function scrollChatToBottom() {
+      if (chatHistory) chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+    scrollChatToBottom();
+    // Typing animation (simulate for demo)
+    function showTypingIndicator(show) {
+      if (typingIndicator) typingIndicator.style.display = show ? '' : 'none';
+    }
+    // AJAX chat submission
+    if (form && textarea && chatHistory) {
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const question = textarea.value.trim();
+        if (!question) return;
+        // Append user message
+        const userRow = document.createElement('div');
+        userRow.className = 'chat-row user';
+        userRow.innerHTML = `<div class="chat-author">You</div><div class="chat-content"></div>`;
+        userRow.querySelector('.chat-content').textContent = question;
+        chatHistory.appendChild(userRow);
+        scrollChatToBottom();
+        // Clear textarea
+        textarea.value = '';
+        textarea.style.height = 'auto';
+        // Show typing indicator
+        showTypingIndicator(true);
+        scrollChatToBottom();
+        // Send AJAX request
+        try {
+          const res = await fetch('/ask', {
+            method: 'POST',
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ question })
+          });
+          const data = await res.json();
+          showTypingIndicator(false);
+          if (data.reply) {
+            const agentRow = document.createElement('div');
+            agentRow.className = 'chat-row assistant';
+            agentRow.innerHTML = `<div class="chat-author"><img src="https://assets-v2.lottiefiles.com/a/b942abb8-d62e-11ee-a179-af4105107ebe/tPZDd31PcO.gif" alt="Assistant" style="height:40px;width:auto;vertical-align:middle;border-radius:8px;" /></div><div class="chat-content"></div>`;
+            agentRow.querySelector('.chat-content').textContent = data.reply;
+            chatHistory.appendChild(agentRow);
+            scrollChatToBottom();
+          } else if (data.error) {
+            const errorRow = document.createElement('div');
+            errorRow.className = 'chat-row assistant';
+            errorRow.innerHTML = `<div class="chat-author"><img src="https://assets-v2.lottiefiles.com/a/b942abb8-d62e-11ee-a179-af4105107ebe/tPZDd31PcO.gif" alt="Assistant" style="height:40px;width:auto;vertical-align:middle;border-radius:8px;" /></div><div class="chat-content"></div>`;
+            errorRow.querySelector('.chat-content').textContent = data.error;
+            chatHistory.appendChild(errorRow);
+            scrollChatToBottom();
+          }
+        } catch (err) {
+          showTypingIndicator(false);
+          const errorRow = document.createElement('div');
+          errorRow.className = 'chat-row assistant';
+          errorRow.innerHTML = `<div class="chat-author"><img src="https://assets-v2.lottiefiles.com/a/b942abb8-d62e-11ee-a179-af4105107ebe/tPZDd31PcO.gif" alt="Assistant" style="height:40px;width:auto;vertical-align:middle;border-radius:8px;" /></div><div class="chat-content"></div>`;
+          errorRow.querySelector('.chat-content').textContent = 'Error: Could not reach the server.';
+          chatHistory.appendChild(errorRow);
+          scrollChatToBottom();
+        }
+      });
+    }
+    // Feedback sidebar logic
+    const feedbackSidebar = document.getElementById('feedbackSidebar');
+    const feedbackToggle = document.getElementById('feedbackToggle');
+    const feedbackContent = document.getElementById('feedbackContent');
+    const feedbackClose = document.getElementById('feedbackClose');
+    const feedbackForm = document.getElementById('feedbackForm');
+    const feedbackSuccess = document.getElementById('feedbackSuccess');
+    const navbarFeedbackBtn = document.getElementById('navbarFeedbackBtn');
+    let sidebarOpen = false;
+    function openFeedbackSidebar() {
+      feedbackSidebar.classList.add('opening');
+      setTimeout(() => {
+        feedbackSidebar.classList.add('open');
+        feedbackSidebar.classList.remove('opening');
+      }, 10); // allow browser to register the class for transition
+      feedbackToggle.style.opacity = '0';
+      feedbackToggle.style.pointerEvents = 'none';
+      sidebarOpen = true;
+    }
+    function closeFeedbackSidebar() {
+      feedbackSidebar.classList.add('closing');
+      setTimeout(() => {
+        feedbackSidebar.classList.remove('open');
+        feedbackSidebar.classList.remove('closing');
+        feedbackToggle.style.opacity = '1';
+        feedbackToggle.style.pointerEvents = 'auto';
+      }, 300);
+      sidebarOpen = false;
+    }
+    if (feedbackToggle) feedbackToggle.onclick = openFeedbackSidebar;
+    if (navbarFeedbackBtn) navbarFeedbackBtn.onclick = function(e) { e.preventDefault(); openFeedbackSidebar(); };
+    if (feedbackClose) feedbackClose.onclick = closeFeedbackSidebar;
+    if (feedbackForm) {
+      feedbackForm.onsubmit = function(e) {
+        e.preventDefault();
+        feedbackSuccess.style.display = 'block';
+        setTimeout(() => {
+          feedbackSuccess.style.display = 'none';
+          closeFeedbackSidebar();
+          feedbackForm.reset();
+        }, 2000);
+      };
+    }
+  </script>
+</body>
+</html>

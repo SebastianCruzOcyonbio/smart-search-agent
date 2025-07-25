@@ -26,7 +26,8 @@ app.config.update(
 
 # Only set SERVER_NAME in deployed environment
 if os.getenv("DEPLOYED", "false").lower() == "true":
-    app.config["SERVER_NAME"] = "https://ehrgypqkv3.us-east-2.awsapprunner.com "
+    # app.config["SERVER_NAME"] = "https://b9u5c3kvef.us-east-1.awsapprunner.com"
+    app.config["SERVER_NAME"] = "smartsearch.app.ocyonbio.com"
 
 configure_oauth(app)
 register_routes(app)

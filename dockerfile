@@ -31,4 +31,4 @@ EXPOSE 8501
 # USER appuser
 
 # Launch app via gunicorn (adjust if your entrypoint is different)
-CMD ["gunicorn", "--bind", "0.0.0.0:8501", "main:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8501", "app:app"]
